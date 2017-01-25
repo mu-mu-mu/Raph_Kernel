@@ -156,8 +156,7 @@ void TaskCtrl::Run() {
 }
 
 void TaskCtrl::Register(CpuId cpuid, sptr<Task> task) {
-  if (!(task->_status == Task::Status::kOutOfQueue ||
-        (task->_status == Task::Status::kRunning && task->_cpuid.GetRawId() == cpuid.GetRawId()))) {
+  if (task->IsRegistered()) {
     kernel_panic("TaskCtrl", "unable to register queued Task.");
   }
   int raw_cpuid = cpuid.GetRawId();
@@ -378,7 +377,7 @@ void Callout::HandleSub2(sptr<Callout> callout) {
   if (timer->IsTimePassed(_time)) {
     _pending = false;
     _state = CalloutState::kHandling;
-    _task->SetFunc(make_uptr<GenericFunction>());
+    _task->SetFunc(make_uptr<GenericFunction<>>());
     _func->Execute();
     if (_state == CalloutState::kHandling) {
       _state = CalloutState::kStopped;

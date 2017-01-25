@@ -17,7 +17,14 @@ else
 	VNC = @echo non supported OS; exit 1
 endif
 
-.PHONY: clean disk mount umount showerror numerror vboxrun run_pxeserver pxeimg burn_ipxe burn_ipxe_remote vboxkill vnc
+ifdef INIT
+	REMOTE_COMMAND += export INIT=$(INIT); 
+	INIT_FILE = init.$(INIT)
+else
+	INIT_FILE = init
+endif
+
+.PHONY: clean disk run image mount umount debugqemu showerror numerror vboxrun run_pxeserver pxeimg burn_ipxe burn_ipxe_remote vboxkill vnc synctime
 
 default: image
 
@@ -31,11 +38,14 @@ _run:
 	$(MAKE) _qemuend
 
 _qemurun: _image
-	sudo qemu-system-x86_64 -cpu qemu64,+x2apic -smp 8 -machine q35 -monitor telnet:127.0.0.1:1234,server,nowait -vnc 0.0.0.0:0,password -net nic -net bridge,br=br0 -drive id=disk,file=$(IMAGE),if=virtio &
+	sudo qemu-system-x86_64 -cpu qemu64,+x2apic -smp 8 -machine q35 -monitor telnet:127.0.0.1:1234,server,nowait -vnc 0.0.0.0:0,password -net nic -net bridge,br=br0 -drive id=disk,file=$(IMAGE),if=virtio -usb -usbdevice keyboard &
 #	sudo qemu-system-x86_64 -cpu qemu64,+x2apic -smp 8 -machine q35 -monitor telnet:127.0.0.1:1234,server,nowait -vnc 0.0.0.0:0,password -net nic -net bridge,br=br0 -drive id=disk,file=$(IMAGE),if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 &
 #	sudo qemu-system-x86_64 -smp 8 -machine q35 -monitor telnet:127.0.0.1:1234,server,nowait -vnc 0.0.0.0:0,password -net nic -net bridge,br=br0 -drive file=$(IMAGE),if=virtio &
 	sleep 0.2s
 	echo "set_password vnc a" | netcat 127.0.0.1 1234
+
+_debugqemu:
+	sudo gdb -x ./.gdbinit -p `ps aux | grep qemu | sed -n 2P | awk '{ print $$2 }'`
 
 _qemuend:
 	-sudo pkill -KILL qemu
@@ -43,6 +53,7 @@ _qemuend:
 _bin:
 	-mkdir $(BUILD_DIR)
 	cp script $(BUILD_DIR)/script
+	cp $(INIT_FILE) $(BUILD_DIR)/init
 	$(MAKE) -C source
 
 _image:
@@ -101,26 +112,29 @@ _numerror:
 # for local host
 ###################################
 
-image: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _image"
+image: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _image"
 
-run: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _run"
+run: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _run"
 
-hd: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _hd"
+debugqemu: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make _debugqemu"
 
-clean: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make _clean"
+hd: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _hd"
 
-showerror: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _showerror"
+clean: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make _clean"
 
-numerror: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _numerror"
+showerror: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _showerror"
 
-vboxrun: vboxkill .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _cpimage"
+numerror: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _numerror"
+
+vboxrun: vboxkill synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _cpimage"
 	-vboxmanage unregistervm RK_Test --delete
 	-rm $(VDI)
 	vboxmanage createvm --name RK_Test --register
@@ -135,16 +149,16 @@ run_pxeserver:
 	@echo info: allow port 8080 in your firewall settings
 	cd net; python -m SimpleHTTPServer 8080
 
-pxeimg: .ssh_config
-	@$(SSH_CMD) "cd /vagrant/; make -j3 _cpimage"
+pxeimg: synctime
+	@$(SSH_CMD) "$(REMOTE_COMMAND) cd /vagrant/; make -j3 _cpimage"
 	gzip $(IMAGEFILE)
 	mv $(IMAGEFILE).gz net/
 
-burn_ipxe: .ssh_config
+burn_ipxe: synctime
 	./lan.sh local
 	@$(SSH_CMD) "cd ipxe/src; make bin-x86_64-pcbios/ipxe.usb EMBED=/vagrant/load.cfg; if [ ! -e /dev/sdb ]; then echo 'error: insert usb memory!'; exit -1; fi; sudo dd if=bin-x86_64-pcbios/ipxe.usb of=/dev/sdb"
 
-burn_ipxe_remote: .ssh_config
+burn_ipxe_remote: synctime
 	./lan.sh remote
 	@$(SSH_CMD) "cd ipxe/src; make bin-x86_64-pcbios/ipxe.usb EMBED=/vagrant/load.cfg; if [ ! -e /dev/sdb ]; then echo 'error: insert usb memory!'; exit -1; fi; sudo dd if=bin-x86_64-pcbios/ipxe.usb of=/dev/sdb"
 
@@ -154,6 +168,9 @@ vboxkill:
 vnc:
 	@echo info: vnc password is "a"
 	$(VNC)
+
+synctime: .ssh_config
+	@./time.sh
 
 .ssh_config:
 	vagrant ssh-config > .ssh_config

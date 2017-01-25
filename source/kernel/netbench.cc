@@ -25,10 +25,11 @@
 #include <dev/eth.h>
 #include <tty.h>
 #include <global.h>
+#include <list.h>
 
 uint64_t cnt = 0;
 int64_t sum = 0;
-static const int stime = 1000;
+static const int stime = 7000;
 int time = stime, rtime = 0;
 
 extern CpuId network_cpu;
@@ -42,10 +43,10 @@ void setup_arp_reply(NetDev *dev) {
           uint32_t my_addr_int;
           assert(eth->GetIpv4Address(my_addr_int));
           uint8_t my_addr[4];
-          my_addr[0] = (my_addr_int >> 24) & 0xff;
-          my_addr[1] = (my_addr_int >> 16) & 0xff;
-          my_addr[2] = (my_addr_int >> 8) & 0xff;
-          my_addr[3] = (my_addr_int >> 0) & 0xff;
+          my_addr[0] = (my_addr_int >> 0) & 0xff;
+          my_addr[1] = (my_addr_int >> 8) & 0xff;
+          my_addr[2] = (my_addr_int >> 16) & 0xff;
+          my_addr[3] = (my_addr_int >> 24) & 0xff;
           // received packet
           if(rpacket->GetBuffer()[12] == 0x08 && rpacket->GetBuffer()[13] == 0x06 && rpacket->GetBuffer()[21] == 0x02) {
             uint64_t l = ((uint64_t)(timer->ReadMainCnt() - cnt) * (uint64_t)timer->GetCntClkPeriod()) / 1000;
@@ -68,6 +69,7 @@ void setup_arp_reply(NetDev *dev) {
             //              "d", rpacket->GetBuffer()[30], "s", ".",
             //              "d", rpacket->GetBuffer()[31], "s", " ",
             //              "s","latency:","d",l,"s","us\n");
+            
           }
           if(rpacket->GetBuffer()[12] == 0x08 && rpacket->GetBuffer()[13] == 0x06 && rpacket->GetBuffer()[21] == 0x01 && (memcmp(rpacket->GetBuffer() + 38, my_addr, 4) == 0)) {
             // ARP packet
@@ -128,6 +130,7 @@ void send_arp_packet(NetDev *dev, uint8_t *ipaddr) {
     static uint8_t target_addr[4];
     memcpy(target_addr, ipaddr, 4);
     cnt = 0;
+    sum = 0;
     auto callout_ = make_sptr(new Callout);
     callout_->Init(make_uptr(new Function2<wptr<Callout>, NetDev *>([](wptr<Callout> callout, NetDev *eth){
             if (!apic_ctrl->IsBootupAll()) {
@@ -167,10 +170,10 @@ void send_arp_packet(NetDev *dev, uint8_t *ipaddr) {
               memcpy(data + 22, data + 6, 6);
               uint32_t my_addr;
               assert(eth->GetIpv4Address(my_addr));
-              data[28] = (my_addr >> 24) & 0xff;
-              data[29] = (my_addr >> 16) & 0xff;
-              data[30] = (my_addr >> 8) & 0xff;
-              data[31] = (my_addr >> 0) & 0xff;
+              data[28] = (my_addr >> 0) & 0xff;
+              data[29] = (my_addr >> 8) & 0xff;
+              data[30] = (my_addr >> 16) & 0xff;
+              data[31] = (my_addr >> 24) & 0xff;
               memcpy(data + 38, target_addr, 4);
               uint32_t len = sizeof(data)/sizeof(uint8_t);
               NetDev::Packet *tpacket;
@@ -186,6 +189,9 @@ void send_arp_packet(NetDev *dev, uint8_t *ipaddr) {
               task_ctrl->RegisterCallout(make_sptr(callout), 1000);
             }
           }, make_wptr(callout_), dev)));
+    if (callout_->IsRegistered()) {
+      task_ctrl->CancelCallout(callout_);
+    }
     task_ctrl->RegisterCallout(callout_, cpu_ctrl->RetainCpuIdForPurpose(CpuPurpose::kLowPriority), 1000);
   }
 
@@ -205,6 +211,9 @@ void send_arp_packet(NetDev *dev, uint8_t *ipaddr) {
               task_ctrl->RegisterCallout(make_sptr(callout), 1000*1000*3);
             }
           }, make_wptr(callout_), dev)));
+    if (callout_->IsRegistered()) {
+      task_ctrl->CancelCallout(callout_);
+    }
     task_ctrl->RegisterCallout(callout_, cpu_ctrl->RetainCpuIdForPurpose(CpuPurpose::kLowPriority), 2000);
   }
 }

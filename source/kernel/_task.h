@@ -42,7 +42,7 @@ public:
   virtual ~Task() {
     kassert(_status == Status::kOutOfQueue);
   }
-  virtual void SetFunc(uptr<GenericFunction> func) {
+  virtual void SetFunc(uptr<GenericFunction<>> func) {
     _func = func;
   }
   Status GetStatus() {
@@ -57,8 +57,11 @@ public:
   virtual void Kill() {
     kernel_panic("Task", "unable to kill normal Task");
   }
+  bool IsRegistered() {
+    return _status == Task::Status::kWaitingInQueue;
+  }
 private:
-  uptr<GenericFunction> _func;
+  uptr<GenericFunction<>> _func;
   sptr<Task> _next;
   sptr<Task> _prev;
   CpuId _cpuid;
@@ -77,19 +80,22 @@ public:
   }
   virtual ~CountableTask() {
   }
-  void SetFunc(CpuId cpuid, uptr<GenericFunction> func) {
+  void SetFunc(CpuId cpuid, uptr<GenericFunction<>> func) {
     _cpuid = cpuid;
     _func = func;
   }
   Task::Status GetStatus() {
     return _task->GetStatus();
   }
+  sptr<Task> GetTask() {
+    return _task;
+  }
   void Inc();
 private:
   void HandleSub(void *);
   sptr<Task> _task;
   SpinLock _lock;
-  uptr<GenericFunction> _func;
+  uptr<GenericFunction<>> _func;
   int _cnt;
   CpuId _cpuid;
 };
@@ -109,7 +115,7 @@ public:
   }
   virtual ~Callout() {
   }
-  void Init(uptr<GenericFunction> func) {
+  void Init(uptr<GenericFunction<>> func) {
     _func = func;
   }
   volatile bool IsHandling() {
@@ -117,6 +123,9 @@ public:
   }
   bool IsPending() {
     return _pending;
+  }
+  bool IsRegistered() {
+    return _task->IsRegistered() || _state == CalloutState::kCalloutQueue || _state == CalloutState::kTaskQueue;
   }
 protected:
   void HandleSub2(sptr<Callout> callout);
@@ -131,7 +140,7 @@ private:
   sptr<Task> _task;
   uint64_t _time;
   sptr<Callout> _next;
-  uptr<GenericFunction> _func;
+  uptr<GenericFunction<>> _func;
   SpinLock _lock;
   bool _pending = false;
   CalloutState _state = CalloutState::kStopped;
