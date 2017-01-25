@@ -30,6 +30,8 @@ extern "C" {
 #define INT_MAX (__INT_MAX__)
 #define INT_MIN (-(__INT_MAX__)-1)
 
+#define UINT64_MAX (__UINT64_MAX__)
+#define UINT64_MIN (0)
 
 #ifdef __cplusplus
 }

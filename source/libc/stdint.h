@@ -37,6 +37,7 @@ extern "C" {
   typedef __UINT64_TYPE__ uint64_t;
 
   typedef int64_t intptr_t;
+  typedef uint64_t uintptr_t;
   
 #ifdef __cplusplus
 }

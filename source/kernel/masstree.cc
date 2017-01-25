@@ -88,19 +88,19 @@
  *   protected by the lock of the nodes they are pointing to.
  */
 
-#if defined(_KERNEL) || defined(_STANDALONE)
-#include <sys/cdefs.h>
-#include <sys/param.h>
-#include <sys/types.h>
-#else
-#include <stdio.h>
+// #if defined(_KERNEL) || defined(_STANDALONE)
+// #include <sys/cdefs.h>
+// #include <sys/param.h>
+// #include <sys/types.h>
+// #else
+// #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
-#endif
+// #endif
 
 #include "utils.h"
 #include "masstree.h"
@@ -470,7 +470,7 @@ leaf_create(const masstree_t *tree)
 	const masstree_ops_t *ops = tree->ops;
 	mtree_leaf_t *leaf;
 
-	leaf = ops->alloc(sizeof(mtree_leaf_t));
+	leaf = (mtree_leaf_t *)ops->alloc(sizeof(mtree_leaf_t));
 	memset(leaf, 0, sizeof(mtree_leaf_t));
 	leaf->version = NODE_ISBORDER;
 	return leaf;
@@ -644,7 +644,7 @@ internode_create(const masstree_t *tree)
 	const masstree_ops_t *ops = tree->ops;
 	mtree_inode_t *node;
 
-	node = ops->alloc(sizeof(mtree_inode_t));
+	node = (mtree_inode_t *)ops->alloc(sizeof(mtree_inode_t));
 	memset(node, 0, sizeof(mtree_inode_t));
 	return node;
 }
@@ -880,7 +880,7 @@ split_leaf_node(masstree_t *tree, mtree_node_t *node,
 	 *
 	 * Both nodes locked; acquire the lock on parent node.
 	 */
-	leaf = nleaf = (void *)0xdeadbeef;
+	leaf = nleaf = (mtree_leaf_t *)0xdeadbeef;
 ascend:
 	if ((parent = lock_parent_node(node)) == NULL) {
 		/*
@@ -1304,7 +1304,7 @@ forward:
 	if (__predict_true(type == MTREE_LAYER)) {
 		/* Advance the key and move to the next layer. */
 		ASSERT((slen & MTREE_LAYER) != 0);
-		root = lv;
+		root = (mtree_node_t *)lv;
 		goto advance;
 	}
 #if 0
@@ -1357,9 +1357,9 @@ advance:
 		 * Continue to the next layer.  Fixup the pointer to
 		 * point to the real root, if necessary.
 		 */
-		root = leaf->lv[idx];
+		root = (mtree_node_t *)leaf->lv[idx];
 		if ((root->version & NODE_ISROOT) == 0) {
-			root = leaf->lv[idx] = walk_to_root(root);
+			root = (mtree_node_t *)(leaf->lv[idx] = walk_to_root(root));
 		}
 		unlock_node(node);
 		goto advance;
@@ -1377,7 +1377,7 @@ newlayer:
 		nlayer = leaf_create(tree);
 		nlayer->version |= NODE_LOCKED | NODE_INSERTING | NODE_ISROOT;
 		atomic_thread_fence(memory_order_release);
-		root = sval = nlayer;
+		root = (mtree_node_t *)(sval = nlayer);
 	}
 
 	/* The key was not found: insert it. */
@@ -1455,9 +1455,9 @@ delayer:
 		 * Check if it points to the real root; if not, walk up
 		 * to the real root and reset our pointer.
 		 */
-		root = leaf->lv[idx];
+		root = (mtree_node_t *)leaf->lv[idx];
 		if ((root->version & NODE_ISROOT) == 0) {
-			root = leaf->lv[idx] = walk_to_root(root);
+			root = (mtree_node_t *)(leaf->lv[idx] = walk_to_root(root));
 		}
 
 		/*
@@ -1509,7 +1509,7 @@ void
 masstree_gc(masstree_t *tree, void *gc)
 {
 	const masstree_ops_t *ops = tree->ops;
-	mtree_node_t *node = gc, *next;
+	mtree_node_t *node = (mtree_node_t *)gc, *next;
 
 	while (node) {
 		const uint32_t v = node->version;
@@ -1541,7 +1541,7 @@ masstree_create(const masstree_ops_t *ops)
 		};
 		ops = &default_ops;
 	}
-	tree = ops->alloc(sizeof(masstree_t));
+	tree = (masstree_t *)ops->alloc(sizeof(masstree_t));
 	memset(tree, 0, sizeof(masstree_t));
 	tree->ops = ops;
 

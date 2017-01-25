@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2016 Raphine Project
+ * Copyright (c) 2017 Raphine Project
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,23 +20,12 @@
  * 
  */
 
-#ifndef __RAPH_LIB_ENDIAN_H__
-#define __RAPH_LIB_ENDIAN_H__
+#pragma once
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
-#define htole16(x) (x)
-#define htole32(x) (x)
-#define htole64(x) (x)
-
-#define le16toh(x) (x)
-#define le32toh(x) (x)
-#define le64toh(x) (x)
-
-#define htobe64(x) __builtin_bswap64(x)
-
-#else
-#error not supported
-#endif
-
-#endif /* __RAPH_LIB_ENDIAN_H__ */
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

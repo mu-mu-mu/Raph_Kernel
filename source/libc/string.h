@@ -20,8 +20,7 @@
  * 
  */
 
-#ifndef __RAPH_LIB_STRING_H__
-#define __RAPH_LIB_STRING_H__
+#pragma once
 
 #include <stdint.h>
 #include <stddef.h>
@@ -97,7 +96,7 @@ extern "C" {
     return dest;
   }
 
-  static void *memset(void *dest, uint8_t c, size_t n) {
+  static inline void *memset(void *dest, uint8_t c, size_t n) {
     uint8_t *d = (uint8_t *)dest;
     for(; n > 0; n--, d++) {
       *d = c;
@@ -105,7 +104,7 @@ extern "C" {
     return dest;
   }
 
-  static int memcmp(const void *s1, const void *s2, size_t n) { 
+  static inline int memcmp(const void *s1, const void *s2, size_t n) { 
     const uint8_t *p1 = (const uint8_t *)s1;
     const uint8_t *p2 = (const uint8_t *)s2;
     for(; n > 0; n--, p1++, p2++) {
@@ -117,6 +116,23 @@ extern "C" {
     return 0;
   }
 
+  static inline void *memmove(void *s1, const void *s2, size_t n) {
+    uint8_t *p1 = (uint8_t *)s1;
+    const uint8_t *p2 = (const uint8_t *)s1;
+    if (n != 0) {
+      if (p1 < p2) {
+        for (size_t i = 0; i < n; i++) {
+          p1[i] = p2[i];
+        }
+      } else {
+        for (size_t i = 0; i < n; i++) {
+          p1[n - i - 1] = p2[n - i - 1];
+        }
+      }
+    }
+    return s1;
+  }
+    
   static inline int bcmp(const void *s1, const void *s2, size_t n) {
     return memcmp(s1, s2, n);
   }
@@ -194,8 +210,10 @@ extern "C" {
     return val * sign;
   }
 
+  #define ffs(i) __builtin_ffs(i)
+  #define ffsl(i) __builtin_ffsl(i)
+  #define ffsll(i) __builtin_ffsll(i)
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
-#endif // __RAPH_LIB_STRING_H__
