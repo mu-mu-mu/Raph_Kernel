@@ -801,9 +801,32 @@ seq_del_test(void)
 	masstree_destroy(tree);
 }
 
+
+static void
+invseq_del_test(void)
+{
+	masstree_t *tree = masstree_create(NULL);
+	unsigned nitems = 0x1f;
+	void *ref;
+
+	for (unsigned i = 0; i < nitems; i++) {
+		uint64_t key = i;
+		masstree_put(tree, &key, sizeof(uint64_t), (void *)0x2);
+	}
+	for (unsigned i = 0; i < nitems; i++) {
+		uint64_t key = nitems - i - 1;
+		bool ok = masstree_del(tree, &key, sizeof(uint64_t));
+		assert(ok);
+	}
+	ref = masstree_gc_prepare(tree);
+	masstree_gc(tree, ref);
+	masstree_destroy(tree);
+}
+
 static void masstree_test(int argc, const char *argv[]) {
   random_keyval_test();
   seq_del_test();
+  invseq_del_test();
   gtty->Cprintf("masstree: all test passed!\n");
 }
 
