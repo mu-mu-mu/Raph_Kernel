@@ -49,6 +49,8 @@
 // #include <net/arp.h>
 #include <arpa/inet.h>
 
+#include <masstree.h>
+
 AcpiCtrl *acpi_ctrl = nullptr;
 ApicCtrl *apic_ctrl = nullptr;
 MultibootCtrl *multiboot_ctrl = nullptr;
@@ -756,6 +758,55 @@ static void beep(int argc, const char *argv[]) {
   task_ctrl->RegisterCallout(callout_, beep_cpuid, 1);
 }
 
+static void
+random_keyval_test(void)
+{
+	for (unsigned s = 1; s <= 100; s++) {
+		masstree_t *tree = masstree_create(NULL);
+		size_t n = 10000, i = n;
+
+		while (--i) {
+			unsigned long val = rand(), key = rand() % 1000;
+			void *pval = (void *)(uintptr_t)val, *pkey = &key;
+
+			masstree_put(tree, pkey, sizeof(key), pval);
+			pval = masstree_get(tree, pkey, sizeof(key));
+
+			if ((unsigned long)(uintptr_t)pval != val) {
+				gtty->CprintfRaw("%lx, %lx, %zu\n", val, key, n - i);
+				abort();
+			}
+		}
+	}
+}
+
+static void
+seq_del_test(void)
+{
+	masstree_t *tree = masstree_create(NULL);
+	unsigned nitems = 0x1f;
+	void *ref;
+
+	for (unsigned i = 0; i < nitems; i++) {
+		uint64_t key = i;
+		masstree_put(tree, &key, sizeof(uint64_t), (void *)0x1);
+	}
+	for (unsigned i = 0; i < nitems; i++) {
+		uint64_t key = i;
+		bool ok = masstree_del(tree, &key, sizeof(uint64_t));
+		assert(ok);
+	}
+	ref = masstree_gc_prepare(tree);
+	masstree_gc(tree, ref);
+	masstree_destroy(tree);
+}
+
+static void masstree_test(int argc, const char *argv[]) {
+  random_keyval_test();
+  seq_del_test();
+  gtty->Cprintf("masstree: all test passed!\n");
+}
+
 void freebsd_main();
 
 extern "C" int main() {
@@ -867,6 +918,7 @@ extern "C" int main() {
   shell->Register("setflag", setflag);
   shell->Register("udpsend", udpsend);
   shell->Register("arp_scan", arp_scan);
+  shell->Register("masstree", masstree_test);
 
   if (do_membench) {
     register_membench2_callout();

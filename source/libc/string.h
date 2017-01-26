@@ -118,7 +118,7 @@ extern "C" {
 
   static inline void *memmove(void *s1, const void *s2, size_t n) {
     uint8_t *p1 = (uint8_t *)s1;
-    const uint8_t *p2 = (const uint8_t *)s1;
+    const uint8_t *p2 = (const uint8_t *)s2;
     if (n != 0) {
       if (p1 < p2) {
         for (size_t i = 0; i < n; i++) {
