@@ -681,20 +681,44 @@ struct LoadContainer {
   int i = 0;
 };
 
+static void wait_until_linkup(sptr<Callout> sh_task, int argc, const char *argv[]) {
+  if (argc != 2) {
+    gtty->Cprintf("invalid argument.\n");
+    task_ctrl->RegisterCallout(sh_task, 10);
+    return;
+  }
+  NetDevCtrl::NetDevInfo *info = netdev_ctrl->GetDeviceInfo(argv[1]);
+  if (info == nullptr) {
+    gtty->Cprintf("no such device.\n");
+    task_ctrl->RegisterCallout(sh_task, 10);
+    return;
+  }
+  NetDev *dev_ = info->device;
+  auto callout_ = make_sptr(new Callout);
+  callout_->Init(make_uptr(new Function3<wptr<Callout>, sptr<Callout>, NetDev *>([](wptr<Callout> callout, sptr<Callout> sh_task_, NetDev *dev){
+          if (dev->IsLinkUp()) {
+            task_ctrl->RegisterCallout(sh_task_, 10);
+          } else {
+            task_ctrl->RegisterCallout(make_sptr(callout), 1000 * 1000);
+          }
+        }, make_wptr(callout_), sh_task, dev_)));
+  task_ctrl->RegisterCallout(callout_, 10);
+}
+
 static void load_script(sptr<LoadContainer> container_) {
   auto callout_ = make_sptr(new Callout);
   callout_->Init(make_uptr(new Function2<wptr<Callout>, sptr<LoadContainer>>([](wptr<Callout> callout, sptr<LoadContainer> container){
           size_t i = container->i;
-          while(container->i < container->data->GetLen()) {
-            if ((*container->data)[container->i] == '\n') {
-              (*container->data)[container->i] = '\0';
+          while(container->i <= container->data->GetLen()) {
+            if (container->i == container->data->GetLen() || (*container->data)[container->i] == '\n' || (*container->data)[container->i] == '\0') {
+              char buffer[container->i - i + 1];
+              buffer[container->i - i] = '\0';
+              memcpy(buffer, reinterpret_cast<char *>(container->data->GetRawPtr()) + i, container->i - i);
               auto ec = make_uptr(new Shell::ExecContainer(shell));
-              ec = shell->Tokenize(ec, reinterpret_cast<char *>(container->data->GetRawPtr()) + i);
-              container->i++;
-              if (strcmp(ec->argv[0], "wait") != 0) {
-                shell->Execute(ec);
-              } else {
-                gtty->Cprintf("> wait %s\n", ec->argv[1]);
+              ec = shell->Tokenize(ec, buffer);
+              int timeout = 10;
+              if (strcmp(ec->argv[0], "wait") == 0) {
+                gtty->Cprintf("> %s\n", buffer);
                 if (ec->argc == 2) {
                   int t = 0;
                   for(size_t l = 0; l < strlen(ec->argv[1]); l++) {
@@ -705,14 +729,26 @@ static void load_script(sptr<LoadContainer> container_) {
                     }
                     t = t * 10 + ec->argv[1][l] - '0';
                   }
-                  task_ctrl->RegisterCallout(make_sptr(callout), t * 1000 * 1000);
-                  return;
+                  timeout = t * 1000 * 1000;
                 } else {
                   gtty->Cprintf("invalid argument.\n");
                 }
+              } else if (strcmp(ec->argv[0], "wait_until_linkup") == 0) {
+                gtty->Cprintf("> %s\n", buffer);
+                const char *argv[] = {"wait_until_wakeup", ec->argv[1]};
+                wait_until_linkup(make_sptr(callout), ec->argc, ec->argv);
+                return;
+              } else {
+                shell->Execute(ec);
               }
-              task_ctrl->RegisterCallout(make_sptr(callout), 10);
+              if (container->i < container->data->GetLen()) {
+                container->i++;
+                task_ctrl->RegisterCallout(make_sptr(callout), timeout);
+              }
               return;
+            }
+            if ((*container->data)[container->i] == '\0') {
+              break;
             }
             container->i++;
           }
