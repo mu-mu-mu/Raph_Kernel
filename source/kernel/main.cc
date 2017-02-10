@@ -49,7 +49,7 @@
 // #include <net/arp.h>
 #include <arpa/inet.h>
 
-#include <masstree.h>
+#include <masstree/masstree.h>
 
 AcpiCtrl *acpi_ctrl = nullptr;
 ApicCtrl *apic_ctrl = nullptr;
