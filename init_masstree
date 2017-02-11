@@ -1,2 +1,10 @@
 show info
-masstree
+setip ixgbe1 192.168.12.60
+wait_until_linkup ixgbe1
+arp_scan
+beep
+wait 3
+udpsend 192.168.12.35 1234 hogehoge
+udp_setup
+
+
