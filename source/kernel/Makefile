@@ -7,7 +7,7 @@ OBJS = \
 	mem/virtmem.o mem/paging.o mem/physmem.o mem/dlmalloc.o mem/kstack.o \
 	shell.o udp.o \
 	../libc/lib.o libglobal.o queue.o spinlock.o \
-	membench/membench.o membench/test2.o membench/test3.o membench/test4.o netbench.o \
+	membench/membench.o membench/test2.o membench/test3.o membench/test4.o membench/test5.o netbench.o \
 	masstree/masstree.o # net.o
 
 BUILD = ../../build/
