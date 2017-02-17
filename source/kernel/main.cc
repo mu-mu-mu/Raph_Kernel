@@ -50,8 +50,6 @@
 #include <udp.h>
 #include <dev/eth.h>
 
-#include <masstree/masstree.h>
-
 AcpiCtrl *acpi_ctrl = nullptr;
 ApicCtrl *apic_ctrl = nullptr;
 MultibootCtrl *multiboot_ctrl = nullptr;
@@ -92,7 +90,6 @@ AhciChannel *g_channel = nullptr;
 #include <dev/fs/fat/fat.h>
 FatFs *fatfs;
 
-void register_membench2_callout();
 
 static void halt(int argc, const char* argv[]) {
   acpi_ctrl->Shutdown();
@@ -569,78 +566,12 @@ void beep(int argc, const char *argv[]) {
   task_ctrl->RegisterCallout(callout_, beep_cpuid, 1);
 }
 
-static void
-random_keyval_test(void)
-{
-	for (unsigned s = 1; s <= 100; s++) {
-		masstree_t *tree = masstree_create(NULL);
-		size_t n = 10000, i = n;
-
-		while (--i) {
-			unsigned long val = rand(), key = rand() % 1000;
-			void *pval = (void *)(uintptr_t)val, *pkey = &key;
-
-			masstree_put(tree, pkey, sizeof(key), pval);
-			pval = masstree_get(tree, pkey, sizeof(key));
-
-			if ((unsigned long)(uintptr_t)pval != val) {
-				gtty->CprintfRaw("%lx, %lx, %zu\n", val, key, n - i);
-				abort();
-			}
-		}
-	}
-}
-
-static void
-seq_del_test(void)
-{
-	masstree_t *tree = masstree_create(NULL);
-	unsigned nitems = 0x1f;
-	void *ref;
-
-	for (unsigned i = 0; i < nitems; i++) {
-		uint64_t key = i;
-		masstree_put(tree, &key, sizeof(uint64_t), (void *)0x1);
-	}
-	for (unsigned i = 0; i < nitems; i++) {
-		uint64_t key = i;
-		bool ok = masstree_del(tree, &key, sizeof(uint64_t));
-		assert(ok);
-	}
-	ref = masstree_gc_prepare(tree);
-	masstree_gc(tree, ref);
-	masstree_destroy(tree);
-}
-
-
-static void
-invseq_del_test(void)
-{
-	masstree_t *tree = masstree_create(NULL);
-	unsigned nitems = 0x1f;
-	void *ref;
-
-	for (unsigned i = 0; i < nitems; i++) {
-		uint64_t key = i;
-		masstree_put(tree, &key, sizeof(uint64_t), (void *)0x2);
-	}
-	for (unsigned i = 0; i < nitems; i++) {
-		uint64_t key = nitems - i - 1;
-		bool ok = masstree_del(tree, &key, sizeof(uint64_t));
-		assert(ok);
-	}
-	ref = masstree_gc_prepare(tree);
-	masstree_gc(tree, ref);
-	masstree_destroy(tree);
-}
-
+void register_masstree_callout();
 static void masstree_test(int argc, const char *argv[]) {
-  random_keyval_test();
-  seq_del_test();
-  invseq_del_test();
-  gtty->Cprintf("masstree: all test passed!\n");
+  register_masstree_callout();
 }
-  
+
+void register_membench2_callout();
 static void membench(int argc, const char *argv[]) {
   register_membench2_callout();
 }

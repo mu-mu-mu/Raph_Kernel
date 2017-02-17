@@ -83,6 +83,9 @@ class TtsSpinLock {
 public:
   TtsSpinLock() {
   }
+  bool IsLocked() {
+    return _flag != 0;
+  }
   bool TryLock() {
     assert(false);
   }
@@ -108,6 +111,9 @@ public:
   }
   bool TryLock() {
     assert(false);
+  }
+  bool IsLocked() {
+    return _cnt != _flag;
   }
   void Lock(uint32_t apicid) {
     uint64_t x = __sync_fetch_and_add(&_cnt, 1);
@@ -265,6 +271,9 @@ public:
       _flag[i].i = 0;
     }
   }
+  bool IsLocked() {
+    return _last != _cur;
+  }
   bool TryLock() {
     assert(false);
   }
@@ -273,10 +282,10 @@ public:
     while (_flag[cur].i == 0) {
     }
     _flag[cur].i = 0;
-    _cur = cur;
   }
   void Unlock(uint32_t apicid) {
-    _flag[(_cur + 1) % arraysize].i = 1;
+    _cur = (_cur + 1) % arraysize;
+    _flag[(_cur) % arraysize].i = 1;
   }
   bool IsNoOneWaiting(uint32_t apicid) {
     return (_cur + 1) % arraysize == _last % arraysize;
@@ -300,6 +309,9 @@ public:
     }
     check_align(_node);
     check_align(&_tail);
+  }
+  bool IsLocked() {
+    return _tail != nullptr;
   }
   bool TryLock(uint32_t apicid) {
     auto qnode = &_node[apicid];
