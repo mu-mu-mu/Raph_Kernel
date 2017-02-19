@@ -275,6 +275,10 @@ static void udp_setup(int argc, const char *argv[]) {
   UdpCtrl::GetCtrl().SetupServer();
 }
 
+static void kvs_setup(int argc, const char *argv[]) {
+  UdpCtrl::GetCtrl().SetupKvsServer();
+}
+
 static void arp_scan(int argc, const char *argv[]) {
   auto devices = netdev_ctrl->GetNamesOfAllDevices();
   for (size_t i = 0; i < devices->GetLen(); i++) {
@@ -419,7 +423,7 @@ void udpsend(int argc, const char *argv[]) {
     gtty->Cprintf("invalid ip v4 addr.\n");
     return;
   }
-  UdpCtrl::GetCtrl().Send(&target_addr, 1234, argv[3]);
+  UdpCtrl::GetCtrl().SendStr(&target_addr, 1234, argv[3]);
 }
   
 static void show(int argc, const char *argv[]) {
@@ -691,6 +695,7 @@ extern "C" int main() {
   shell->Register("udp_setup", udp_setup);
   shell->Register("masstree", masstree_test);
   shell->Register("membench", membench);
+  shell->Register("kvs_setup", kvs_setup);
 
   load_script(make_sptr(new LoadContainer(multiboot_ctrl->LoadFile("init.sh"))));
 

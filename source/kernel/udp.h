@@ -26,6 +26,7 @@
 #include <raph.h>
 #include <ptr.h>
 #include <function.h>
+#include <string.h>
 
 class UdpCtrl {
 public:
@@ -35,7 +36,11 @@ public:
     return *_udp_ctrl;
   }
   void SetupServer();
-  void Send(uint8_t (*target_addr)[4], uint16_t target_port, const char *data);
+  void SetupKvsServer();
+  void Send(uint8_t (*target_addr)[4], uint16_t target_port, const char *data, size_t len);
+  void SendStr(uint8_t (*target_addr)[4], uint16_t target_port, const char *data) {
+    Send(target_addr, target_port, data, strlen(data));
+  }
   class Socket {
   public:
     uint16_t port;

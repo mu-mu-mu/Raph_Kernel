@@ -1,10 +1,10 @@
 show info
-setip ixgbe0 192.168.12.60
-wait_until_linkup ixgbe0
+setflag spinlock_timeout
+ifconfig
+setip em0 192.168.12.60
+wait_until_linkup em0
 arp_scan
-beep
 wait 3
-udpsend 192.168.12.35 1234 hogehoge
-udp_setup
-masstree
+kvs_setup
+
 
