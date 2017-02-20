@@ -1,5 +1,5 @@
 show info
-setflag spinlock_timeout
+setflag spinlock_timeout false
 ifconfig
 setip em0 192.168.12.60
 wait_until_linkup em0
