@@ -30,6 +30,7 @@ void membench4(sptr<TaskWithStack> task);
 void membench2(sptr<TaskWithStack> task);
 void membench3(sptr<TaskWithStack> task);
 void membench5(sptr<TaskWithStack> task);
+void membench6(sptr<TaskWithStack> task);
 
 CacheCtrl *cache_ctrl;
 
@@ -45,10 +46,7 @@ void register_membench2_callout() {
               cache_ctrl = new CacheCtrl;
               cache_ctrl->Init();
             }
-            // membench4(task);
-            membench2(task);
-            membench3(task);
-            //membench5(task);
+            membench6(task);
           }, task_)));
     task_ctrl->Register(cpuid, task_);
   }
