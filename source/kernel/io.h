@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2016 Raphine Project
+ * Copyright (c) 2017 Raphine Project
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,26 +20,14 @@
  * 
  */
 
-#include "ff.h"
-#include "diskio.h"
-#include "fat.h"
-#include <raph.h>
+#pragma once
 
-extern "C" {
-  DSTATUS disk_initialize (BYTE pdrv) {
-    //    FatFs::InitializeDisk();
-    return 0;
-  }
-  DSTATUS disk_status (BYTE pdrv) {
-    kassert(false);
-  }
-  DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count) {
-    kassert(false);
-  }
-  DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count) {
-    kassert(false);
-  }
-  DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff) {
-    kassert(false);
-  }
-}
+enum class IoReturnState : int {
+  kOk = 2,
+  kPending = 3,
+  kErrInvalid = 4,
+  kErrHardware = 5,
+  kErrNoHwResource = 6,
+  kErrNoSwResource = 7,
+  kErrNotFound = 8,
+};

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2015 Raphine Project
+ * Copyright (c) 2017 Raphine Project
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,31 +16,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
- * Author: Levelfour
+ * Author: Liva
  * 
  */
 
-#ifndef __RAPH_LIB_STDLIB_H__
-#define __RAPH_LIB_STDLIB_H__
+#include "fs.h"
 
-#include <stdint.h>
-#include <stddef.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-  
-  uint32_t rand();
-  void abort();
-
-
-  void *malloc (size_t size) __attribute__((malloc));
-  void *calloc (size_t n, size_t size) __attribute__((malloc));
-  void free(void *ptr);
-
-  int atexit(void (*function)(void));
-#ifdef __cplusplus
+IoReturnState VirtualFileSystem::InodeCtrl::Get(InodeContainer &icontainer, uint32_t inum) {
+  Locker locker(_lock);
+  Inode *empty == nullptr;
+  for (int i = 0; i < kNodesNum; i++) {
+    if (_nodes[i]._ref != 0 && _nodes[i]._inum == inum) {
+      inode = &_nodes[i];
+      inode->_ref++;
+      return IoReturnState::kOk;
+    } else if (_nodes[i]._ref == 0) {
+      empty = &_nodes[i];
+    }
+  }
+  if (empty == nullptr) {
+    return IoReturnState::kErrNoSwResource;
+  }
+  icontainer.Set(empty);
+  empty->_inum = inum;
+  empty->_flags = 0;
+  return IoReturnState::kOk;
 }
-#endif /* __cplusplus */
-
-#endif // __RAPH_LIB_STDLIB_H__

@@ -12,10 +12,10 @@ default: ../intel.o
 	ld -r $^ -o $@
 
 em.o:
-	@$(MAKE) -C em CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C em
 
 ix.o:
-	@$(MAKE) -C ix CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C ix
 
 clean:
 	$(MAKE) -C em clean

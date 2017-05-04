@@ -29,7 +29,7 @@
 
 FrameBuffer::DrawInfo FrameBuffer::_d_info;
 
-void FrameBuffer::Setup() {
+void FrameBuffer::Init() {
   multiboot_ctrl->SetupFrameBuffer(&_fb_info);
   assert(_fb_info.bpp == 24 || _fb_info.bpp == 32);
   

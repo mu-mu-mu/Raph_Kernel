@@ -12,7 +12,7 @@ default: ../nic.o
 	ld -r $^ -o $@
 
 intel.o:
-	@$(MAKE) -C intel CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C intel
 
 clean:
 	$(MAKE) -C intel clean

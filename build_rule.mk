@@ -52,6 +52,9 @@ $(BUILD_DIR)/script:
 $(BUILD_DIR)/init: $(INIT_FILE)
 	cp $(INIT_FILE) $(BUILD_DIR)/init
 
+$(BUILD_DIR)/fs.img:
+	./source/tool/mkfs $(BUILD_DIR)/fs.img README.md
+
 bin_sub: $(BUILD_DIR)/script $(BUILD_DIR)/init
 	$(MAKE_SUBDIR) source
 

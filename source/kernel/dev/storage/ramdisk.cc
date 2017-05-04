@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2016 Raphine Project
+ * Copyright (c) 2017 Raphine Project
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,30 +20,34 @@
  * 
  */
 
-#include <errno.h>
-#include <stdlib.h>
+#include "ramdisk.h"
+#include <multiboot.h>
 
-extern "C" {
-  int errno = 0;
+void Ramdisk::Attach() {
+  Ramdisk *dev = new Ramdisk("fs.img");
+  if (dev->Init() != IoReturnState::kOk) {
+    delete dev;
+  }
 }
 
-#include <mem/virtmem.h>
-#include <libglobal.h>
-
-void *malloc (size_t size) {
-  return reinterpret_cast<void *>(virtmem_ctrl->Alloc(size));
+IoReturnState Ramdisk::InitSub() {
+  _image = multiboot_ctrl->LoadFile(_fname);
+  if (_image.IsNull()) {
+    return IoReturnState::kErrHardware;
+  }
+  return IoReturnState::kOk;
 }
 
-void *calloc (size_t n, size_t size) {
-  return reinterpret_cast<void *>(virtmem_ctrl->AllocZ(n * size));
+IoReturnState Ramdisk::Read(uint8_t *buf, size_t offset, size_t size) {
+  if (_image->GetLen() < offset + size) {
+    return IoReturnState::kErrInvalid;
+  }
+  return IoReturnState::kOk;
 }
 
-void free (void *ptr) {
-  virtmem_ctrl->Free(reinterpret_cast<virt_addr>(ptr));
+IoReturnState Ramdisk::Write(uint8_t *buf, size_t offset, size_t size) {
+  if (_image->GetLen() < offset + size) {
+    return IoReturnState::kErrInvalid;
+  }
+  return IoReturnState::kOk;
 }
-
-int atexit(void (*function)(void)) {
-  // DUMMY
-  return 0;
-}
-

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2016 Raphine Project
+ * Copyright (c) 2017 Raphine Project
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,26 +20,27 @@
  * 
  */
 
-#ifndef __RAPH_KERNEL_DEV_FS_FAT_H__
-#define __RAPH_KERNEL_DEV_FS_FAT_H__
+#pragma once
 
-#include "ff.h"
-#include <raph.h>
-#include <tty.h>
-#include <global.h>
+#include "storage.h"
+#include <ptr.h>
+#include <array.h>
 
-class FatFs {
+class Ramdisk : public Storage {
 public:
-  FatFs() {
+  Ramdisk() = delete;
+  Ramdisk(const char *str) : _fname(str) {
   }
-  bool Mount() {
-    gtty->Printf(">>>%d\n", f_mount(&_fs, "0:/", 1));
-      
-      //    return (f_mount(&_fs, "C:/", 1) == FR_OK);
-    return false;
+  virtual ~Ramdisk() {
   }
+  static void Attach();
 private:
-  FATFS _fs;
+  virtual IoReturnState InitSub() override;
+  virtual IoReturnState Read(uint8_t *buf, size_t offset, size_t size) override;
+  virtual IoReturnState Write(uint8_t *buf, size_t offset, size_t size) override;
+  virtual size_t GetBlockSize() {
+    return 1;
+  }
+  uptr<Array<uint8_t>> _image;
+  const char *_fname;
 };
-
-#endif // __RAPH_KERNEL_DEV_FS_FAT_H__

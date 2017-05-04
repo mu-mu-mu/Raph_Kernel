@@ -1,6 +1,6 @@
 KERNEL = kernel.elf
 
-OBJS = boot/boot.o boot/bootap.o x86_asm.o x86.o main.o multiboot.o apic.o raph_acpi.o gdt.o idt.o int.o freebsd.o dev.o acpica.o mem/virtmem.o shell.o mem/paging.o mem/physmem.o mem/dlmalloc.o mem/kstack.o ../libc/lib.o task.o spinlock.o libglobal.o tty.o queue.o cpu.o elf.o elf_load.o syscall.o syscall_handler.o font.o membench/membench.o membench/test2.o membench/test3.o membench/test4.o membench/test5.o netbench.o # net.o
+OBJS = boot/boot.o boot/bootap.o x86_asm.o x86.o main.o multiboot.o apic.o raph_acpi.o gdt.o idt.o int.o freebsd.o dev.o fs.o v6fs.o acpica.o mem/virtmem.o shell.o mem/paging.o mem/physmem.o mem/dlmalloc.o mem/kstack.o ../libc/lib.o task.o spinlock.o libglobal.o tty.o queue.o cpu.o elf.o elf_load.o syscall.o syscall_handler.o font.o membench/membench.o membench/test2.o membench/test3.o membench/test4.o membench/test5.o netbench.o # net.o
 
 BUILD = ../../build/
 DEPS= $(filter %.d, $(subst .o,.d, $(OBJS)))
@@ -10,13 +10,15 @@ GIT_BRANCH = $(shell git symbolic-ref --short HEAD)
 FLAGS = 
 
 INCLUDE_PATH = -I$(realpath ../libc/) -I$(realpath ./)  -I$(realpath ./freebsd/) -I$(realpath ./acpica/include/)
-RAPHFLAGS = -ggdb3 -O0 -Wall -Werror=return-type -Wshadow -nostdinc -nostdlib -fno-builtin -mcmodel=large -mno-mmx -D__KERNEL__ -D_KERNEL -Dbootverbose=0 $(FLAGS) $(INCLUDE_PATH) -MMD -MP
+RAPHFLAGS = -ggdb3 -O0 -Wall -Werror=return-type -Werror=switch -Werror=unused-result -Wshadow -nostdinc -nostdlib -fno-builtin -mcmodel=large -mno-mmx -D__KERNEL__ -D_KERNEL -Dbootverbose=0 $(FLAGS) $(INCLUDE_PATH) -MMD -MP
 RAPHCFLAGS = $(RAPHFLAGS) -std=c99
 RAPHCXXFLAGS = $(RAPHFLAGS) -std=c++1y -fno-exceptions -fno-rtti -fno-use-cxa-atexit -fno-threadsafe-statics
 CFLAGS += $(RAPHCFLAGS)
 CXXFLAGS += $(RAPHCXXFLAGS)
-
 ASFLAGS += $(RAPHFLAGS)
+export CFLAGS
+export CXXFLAGS
+export ASFLAGS
 
 .PHONY: clean dev.o net.o freebsd.o acpica.o ../libc/lib.o
 
@@ -31,23 +33,24 @@ $(BUILD)$(KERNEL): $(OBJS) kernel.ld
 	@cat $(BUILD)timestamp
 
 dev.o:
-	@$(MAKE) -C dev CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C dev
 
 net.o:
-	@$(MAKE) -C net CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C net
 
 freebsd.o:
-	@$(MAKE) -C freebsd CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C freebsd
 
 acpica.o:
-	@$(MAKE) -C acpica CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)"
+	@$(MAKE) -C acpica
 
 ../libc/lib.o:
-	@$(MAKE) -C ../libc CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ASFLAGS="$(ASFLAGS)"
+	@$(MAKE) -C ../libc
 
 clean:
 	$(MAKE) -C net clean
 	$(MAKE) -C dev clean
+	$(MAKE) -C fs clean
 	$(MAKE) -C freebsd clean
 	$(MAKE) -C acpica clean
 	$(MAKE) -C ../libc clean
