@@ -50,8 +50,8 @@
 #include <dev/storage/storage.h>
 #include <dev/storage/ramdisk.h>
 
-#include <fs.h>
-#include <v6fs.h>
+#include <fs/fs.h>
+#include <fs/v6fs.h>
 
 #include <dev/netdev.h>
 #include <dev/eth.h>
@@ -645,11 +645,11 @@ static void membench(int argc, const char *argv[]) {
   register_membench2_callout();
 }
 
-bool catSub(VirtualFileSystem *vfs, const char *path) {
+bool catSub(DiskFileTree *vfs, const char *path) {
   InodeContainer inode;
   if (vfs->LookupInodeFromPath(inode, path, false) != IoReturnState::kOk)
     return false;
-  VirtualFileSystem::Stat st;
+  InodeContainer::Stat st;
   auto x = inode.GetStatOfInode(st);
   size_t s = st.size;
   uint8_t buf[s];
@@ -671,7 +671,7 @@ void cat(int argc, const char *argv[]) {
     kernel_panic("storage", "not found");
   }
   V6FileSystem *v6fs = new V6FileSystem(*storage);
-  VirtualFileSystem *vfs = new VirtualFileSystem(v6fs);
+  DiskFileTree *vfs = new DiskFileTree(v6fs);
   vfs->Init();
   if (!catSub(vfs, argv[1])) {
     gtty->Printf("cat: %s: No such file or directory\n", argv[1]);
@@ -809,7 +809,7 @@ extern "C" int main() {
     kernel_panic("storage", "not found");
   }
   V6FileSystem *v6fs = new V6FileSystem(*storage);
-  VirtualFileSystem *vfs = new VirtualFileSystem(v6fs);
+  DiskFileTree *vfs = new DiskFileTree(v6fs);
   vfs->Init();
   */
   /*
