@@ -30,7 +30,7 @@
  * @param inode target inode
  * @param inum inode number
  *
- * This function must be called from DiskFileTree::InodeContainer
+ * This function must be called from FileTree::InodeContainer
  */
 void InodeContainer::InitInode(Inode *inode, InodeNumber inum) {
   if (_node != nullptr) {
