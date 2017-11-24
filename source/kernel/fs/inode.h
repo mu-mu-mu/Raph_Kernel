@@ -32,14 +32,12 @@
 using InodeNumber = uint32_t;
 
 class InodeContainer;
-class DiskFileTree;
-class DiskFileSystem;
+class FileTree;
 
 class Inode {
 public:
-  void Init(DiskFileSystem *fs, DiskFileTree *vfs) {
-    _fs = fs;
-    _vfs = vfs;
+  void Init(FileTree *ft) {
+    _ft = ft;
   }
   bool IsEmpty() {
     return _ref == 0;
@@ -58,9 +56,8 @@ private:
   SpinLock _lock;
   int _ref = 0;
   int _flags;
-  DiskFileSystem *_fs = nullptr;
   InodeNumber _inum;
-  DiskFileTree *_vfs;
+  FileTree *_ft;
 };
 
 /**

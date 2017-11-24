@@ -51,6 +51,7 @@
 #include <dev/storage/ramdisk.h>
 
 #include <fs/fs.h>
+#include <fs/filetree.h>
 #include <fs/v6fs.h>
 
 #include <dev/netdev.h>
@@ -756,9 +757,8 @@ extern "C" int main() {
   // 各コアは最低限の初期化ののち、TaskCtrlに制御が移さなければならない
   // 特定のコアで専用の処理をさせたい場合は、TaskCtrlに登録したジョブとして
   // 実行する事
-
   apic_ctrl->StartAPs();
-  
+
   paging_ctrl->ReleaseLowMemory();
 
   gtty->Setup();
@@ -776,8 +776,6 @@ extern "C" int main() {
   freebsd_main();
 
   AttachDevices<PciCtrl, LegacyKeyboard, Ramdisk, Device>();
-
-  // arp_table->Setup();
 
   SystemCallCtrl::Init();
 
@@ -803,20 +801,6 @@ extern "C" int main() {
   shell->Register("membench", membench);
   shell->Register("cat", cat);
 
-  /*
-  Storage *storage;
-  if (StorageCtrl::GetCtrl().GetDevice("ram0", storage) != IoReturnState::kOk) {
-    kernel_panic("storage", "not found");
-  }
-  V6FileSystem *v6fs = new V6FileSystem(*storage);
-  DiskFileTree *vfs = new DiskFileTree(v6fs);
-  vfs->Init();
-  */
-  /*
-  gtty->Printf("test: %s\n", testReadFile(vfs, "/README.md") ? "PASS" : "FAIL");
-  gtty->Printf("test: %s\n",
-               !testReadFile(vfs, "/README.nd") ? "PASS" : "FAIL");
-*/
   load_script(
       make_sptr(new LoadContainer(multiboot_ctrl->LoadFile("init.sh"))));
 

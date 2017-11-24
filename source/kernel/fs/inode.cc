@@ -66,16 +66,16 @@ IoReturnState InodeContainer::GetStatOfInode(InodeContainer::Stat &st) {
   assert(_node != nullptr);
   Locker locker(_node->_lock);
   st.dev = 0; // dummy
-  return _node->_fs->GetStatOfInode(_node->_inum, st);
+  return _node->_ft->GetStatOfInode(_node->_inum, st);
 }
 
 IoReturnState InodeContainer::ReadData(uint8_t *data, size_t offset, size_t &size) {
   assert(_node != nullptr);
   Locker locker(_node->_lock);
-  return _node->_fs->ReadDataFromInode(data, _node->_inum, offset, size);
+  return _node->_ft->ReadDataFromInode(data, _node->_inum, offset, size);
 }
 IoReturnState InodeContainer::DirLookup(char *name, int &offset, InodeNumber &inum) {
   assert(_node != nullptr);
   Locker locker(_node->_lock);
-  return _node->_fs->DirLookup(_node->_inum, name, offset, inum);
+  return _node->_ft->DirLookup(_node->_inum, name, offset, inum);
 }

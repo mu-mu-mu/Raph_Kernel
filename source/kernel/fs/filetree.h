@@ -25,7 +25,6 @@
 
 #include <fs/inode.h>
 #include <fs/fs.h>
-#include <stdlib.h>
 #include <io.h>
 
 class FileTree {
@@ -33,7 +32,26 @@ public:
   virtual void Init() = 0;
   virtual void ReleaseInode() = 0;
   virtual IoReturnState LookupInodeFromPath(InodeContainer &inode, const char *path, bool parent) = 0;
-  
+  virtual IoReturnState GetStatOfInode(InodeNumber inum, InodeContainer::Stat &stat) __attribute__((warn_unused_result)) = 0;
+  /**
+   * @brief read data from inode
+   * @param buf buffer for storing data
+   * @param inum target inode number
+   * @param offset offset in target inode file
+   * @param size size of the data to be read. This function overwrites the value with the actually size read.
+   * 
+   * Caller must allocate 'data'. The size of 'data' must be larger than 'size'.
+   * TODO: check if we can remove this function
+   */
+  virtual IoReturnState ReadDataFromInode(uint8_t *data, InodeNumber inum, size_t offset, size_t &size) __attribute__((warn_unused_result)) = 0;
+  /**
+   * @brief lookup directory and return inode
+   * @param dinode inode of directory
+   * @param name entry name to lookup
+   * @param offset offset of entry (returned by this function)
+   * @param inode found inode (returned by this function)
+   */
+  virtual IoReturnState DirLookup(InodeNumber dinode, char *name, int &offset, InodeNumber &inode) __attribute__((warn_unused_result)) = 0;
 };
   
 class DiskFileTree : public FileTree {
@@ -48,6 +66,16 @@ public:
     _inode_ctrl.ReleaseInode();
   }
   virtual IoReturnState LookupInodeFromPath(InodeContainer &inode, const char *path, bool parent);
+  //TODO: wrapper?
+  IoReturnState DirLookup(InodeNumber dinode, char *name, int &offset, InodeNumber &inode) {
+    return _dfs->DirLookup(dinode,name,offset,inode);
+  }
+  IoReturnState ReadDataFromInode(uint8_t *data, InodeNumber inum, size_t offset, size_t &size) {
+    return _dfs->ReadDataFromInode(data,inum,offset,size);
+  }
+  IoReturnState GetStatOfInode(InodeNumber inum, InodeContainer::Stat &stat) {
+    return _dfs->GetStatOfInode(inum,stat);
+  }
   static const size_t kMaxDirectoryNameLength = 14;
 private:
   
@@ -56,9 +84,9 @@ private:
     InodeCtrl() = delete;
     InodeCtrl(DiskFileSystem *fs) : _dfs(fs) {
     }
-    void Init(DiskFileTree *vfs) {
+    void Init(DiskFileTree *dft) {
       for (int i = 0; i < kNodesNum; i++) {
-        _nodes[i].Init(_dfs, vfs);
+        _nodes[i].Init(dft);
       }
     }
     void ReleaseInode() {

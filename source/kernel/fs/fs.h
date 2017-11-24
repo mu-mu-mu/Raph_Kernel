@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <fs/filetree.h>
 #include <fs/inode.h>
 #include <io.h>
 
