@@ -198,9 +198,15 @@ void Idt::SetExceptionCallback(CpuId cpuid, int vector, int_callback callback, v
 }
 
 void Idt::HandlePageFault(Regs *rs, void *arg) {
+  uint64_t addr;
+  asm volatile("movq %%cr2, %0;":"=r"(addr));
+
+  //Demand Paging
+  if (paging_ctrl->ValidateAddress(addr)) {
+    return;
+  }
+
   if (gtty != nullptr) {
-    uint64_t addr;
-    asm volatile("movq %%cr2, %0;":"=r"(addr));
     int cpuid = cpu_ctrl->GetCpuId().GetRawId();
     const uint64_t ECodePBit = 0x01;	// 0: not present, 1: present
     const uint64_t ECodeRWBit = 0x02;	// 0: read, 1: write

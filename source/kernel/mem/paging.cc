@@ -153,6 +153,47 @@ void PagingCtrl::GetTranslationEntries(virt_addr vaddr, entry_type *pml4e, entry
   }
 }
 
+bool PagingCtrl::Alloc4KPage(virt_addr vaddr, phys_addr pst_flag, phys_addr page_flag) {
+  Locker locker(_lock);
+  entry_type entry = _pml4t->entry[GetPML4TIndex(vaddr)];
+  if ((entry & PML4E_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    entry = _pml4t->entry[GetPML4TIndex(vaddr)] = tpaddr.GetAddr() | pst_flag | PML4E_PRESENT_BIT;
+  }
+  PageTable *pdpt = reinterpret_cast<PageTable *>(p2v(GetPML4EMaskedAddr(entry)));
+  entry = pdpt->entry[GetPDPTIndex(vaddr)];
+  if ((entry & PDPTE_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    entry = pdpt->entry[GetPDPTIndex(vaddr)] = tpaddr.GetAddr() | pst_flag | PDPTE_PRESENT_BIT;
+  }
+  if ((entry & PDPTE_1GPAGE_BIT) != 0) {
+    return false;
+  }
+  PageTable *pd = reinterpret_cast<PageTable *>(p2v(GetPDPTEMaskedAddr(entry)));
+  entry = pd->entry[GetPDIndex(vaddr)];
+  if ((entry & PDE_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    entry = pd->entry[GetPDIndex(vaddr)] = tpaddr.GetAddr() | pst_flag | PDE_PRESENT_BIT;
+  }
+  if ((entry & PDE_2MPAGE_BIT) != 0) {
+    return false;
+  }
+  PageTable *pt = reinterpret_cast<PageTable *>(p2v(GetPDEMaskedAddr(entry)));
+  entry = pt->entry[GetPTIndex(vaddr)];
+  if ((entry & PTE_PRESENT_BIT) == 0) {
+    pt->entry[GetPTIndex(vaddr)] = DUMMY_PHYSADDR | page_flag; 
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool PagingCtrl::Map4KPageToVirtAddr(virt_addr vaddr, PhysAddr &paddr, phys_addr pst_flag, phys_addr page_flag) {
   Locker locker(_lock);
   entry_type entry = _pml4t->entry[GetPML4TIndex(vaddr)];
@@ -249,3 +290,48 @@ bool PagingCtrl::Map1GPageToVirtAddr(virt_addr vaddr, PhysAddr &paddr, phys_addr
   return true;
 }
 
+bool PagingCtrl::ValidateAddress(virt_addr vaddr) {
+  Locker locker(_lock);
+  entry_type entry = _pml4t->entry[GetPML4TIndex(vaddr)];
+  if (entry == 0) { return false;}
+  if ((entry & PML4E_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    entry = _pml4t->entry[GetPML4TIndex(vaddr)] = tpaddr.GetAddr() | (entry & ~DUMMY_PHYSADDR) | PML4E_PRESENT_BIT;
+  }
+  PageTable *pdpt = reinterpret_cast<PageTable *>(p2v(GetPML4EMaskedAddr(entry)));
+  entry = pdpt->entry[GetPDPTIndex(vaddr)];
+  if (entry == 0) { return false;}
+  if ((entry & PDPTE_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    entry = pdpt->entry[GetPDPTIndex(vaddr)] = tpaddr.GetAddr() | (entry & ~DUMMY_PHYSADDR) | PDPTE_PRESENT_BIT;
+  }
+  if ((entry & PDPTE_1GPAGE_BIT) != 0) {
+    return false;
+  }
+  PageTable *pd = reinterpret_cast<PageTable *>(p2v(GetPDPTEMaskedAddr(entry)));
+  entry = pd->entry[GetPDIndex(vaddr)];
+  if (entry == 0) { return false;}
+  if ((entry & PDE_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    entry = pd->entry[GetPDIndex(vaddr)] = tpaddr.GetAddr() | (entry & ~DUMMY_PHYSADDR) | PDE_PRESENT_BIT;
+  }
+  if ((entry & PDE_2MPAGE_BIT) != 0) {
+    return false;
+  }
+  PageTable *pt = reinterpret_cast<PageTable *>(p2v(GetPDEMaskedAddr(entry)));
+  entry = pt->entry[GetPTIndex(vaddr)];
+  if (entry == 0) { return false;}
+  if ((entry & PTE_PRESENT_BIT) == 0) {
+    PhysAddr tpaddr;
+    physmem_ctrl->Alloc(tpaddr, kPageSize);
+    bzero(reinterpret_cast<void *>(tpaddr.GetVirtAddr()), kPageSize);
+    pt->entry[GetPTIndex(vaddr)] = tpaddr.GetAddr() | PTE_WRITE_BIT | PTE_GLOBAL_BIT | PTE_USER_BIT | PTE_PRESENT_BIT;
+  }
+  return true;
+}

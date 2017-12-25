@@ -82,6 +82,8 @@
 #define PTE_DIRTY_BIT              (1<<6)
 #define PTE_GLOBAL_BIT             (1<<8)
 
+#define DUMMY_PHYSADDR ((-1) - ((1<<9) - 1))
+
 
 #ifndef ASM_FILE
 
@@ -113,6 +115,7 @@ class PagingCtrl {
   //
   // write_bitを立てるのを忘れないように
   bool Map4KPageToVirtAddr(virt_addr vaddr, PhysAddr &paddr, phys_addr pst_flag, phys_addr page_flag);
+  bool Alloc4KPage(virt_addr vaddr, phys_addr pst_flag, phys_addr page_flag);
   bool Map2MPageToVirtAddr(virt_addr vaddr, PhysAddr &paddr, phys_addr pst_flag, phys_addr page_flag);
   bool Map1GPageToVirtAddr(virt_addr vaddr, PhysAddr &paddr, phys_addr pst_flag, phys_addr page_flag);
   bool MapPhysAddrToVirtAddr(virt_addr vaddr, PhysAddr &paddr, size_t size, phys_addr pst_flag, phys_addr page_flag) {
@@ -132,7 +135,20 @@ class PagingCtrl {
     }
     return true;
   }
+  bool Alloc(virt_addr vaddr, size_t size, phys_addr pst_flag, phys_addr page_flag) {
+    kassert(vaddr == align(vaddr, kPageSize));
+    kassert(size == align(size, kPageSize));
+    while (size > 0) {
+      if (!Alloc4KPage(vaddr, pst_flag, page_flag)) {
+        return false;
+      }
+      vaddr += kPageSize;
+      size -= kPageSize;
+    }
+    return true;
+  }
   void UnmapVirtAddr(virt_addr addr);
+  bool ValidateAddress(virt_addr addr);
   // kHeapEndAddr以降から空き領域を探す
   //virt_addr SearchUnmappedArea(size_t size);
   // align up size to page boundary

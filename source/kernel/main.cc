@@ -770,7 +770,7 @@ extern "C" int main() {
 
   ThreadCtrl::Init();
 
-  idt->SetupGeneric();
+  idt->SetupGeneric();  
 
   apic_ctrl->BootBSP();
 
@@ -831,6 +831,13 @@ extern "C" int main() {
           load_script(multiboot_ctrl->LoadFile("init.sh"));
         }, nullptr)));
   t_op.Schedule();
+
+
+  if(!paging_ctrl->Alloc(0x40000, PagingCtrl::kPageSize, PDE_WRITE_BIT | PDE_USER_BIT, PTE_WRITE_BIT | PTE_GLOBAL_BIT | PTE_USER_BIT)) {
+    assert(false);
+  }
+  uint8_t *t = reinterpret_cast<uint8_t*>(0x40000);
+  t[3] = 1;
 
   ThreadCtrl::GetCurrentCtrl().Run();
 
